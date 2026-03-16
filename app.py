@@ -35,13 +35,11 @@ else:
 # =====================================
 # DETECT HEADER
 # =====================================
-def detect_header(file):
+def detect_header(df_preview):
 
-    preview = pd.read_excel(file, header=None, nrows=25)
+    for i in range(min(25, len(df_preview))):
 
-    for i in range(25):
-
-        row = preview.iloc[i].astype(str).str.lower()
+        row = df_preview.iloc[i].astype(str).str.lower()
 
         if any("uraian" in cell for cell in row) \
         or any("description" in cell for cell in row) \
@@ -128,34 +126,50 @@ if rk_file:
     try:
 
         # =============================
-        # LOAD FILE
+        # MODE 1 FILE
         # =============================
-        if mode == "1 File (RK + DB)":
+        if mode == "1 File (RK + Database dalam satu file)":
 
             excel = pd.ExcelFile(rk_file)
 
             sheet_rk = excel.sheet_names[0]
             sheet_db = excel.sheet_names[1]
 
-            header_row = detect_header(rk_file)
+            preview = pd.read_excel(excel, sheet_name=sheet_rk, header=None)
+
+            header_row = detect_header(preview)
 
             rk = pd.read_excel(excel, sheet_name=sheet_rk, header=header_row)
             db = pd.read_excel(excel, sheet_name=sheet_db)
 
+
+        # =============================
+        # MODE 2 FILE
+        # =============================
         else:
 
             if rk_file.name.endswith(".csv"):
+
                 rk = pd.read_csv(rk_file)
+
             else:
-                header_row = detect_header(rk_file)
+
+                preview = pd.read_excel(rk_file, header=None)
+
+                header_row = detect_header(preview)
+
                 rk = pd.read_excel(rk_file, header=header_row)
+
 
             if db_file is None:
                 st.stop()
 
             if db_file.name.endswith(".csv"):
+
                 db = pd.read_csv(db_file)
+
             else:
+
                 db = pd.read_excel(db_file)
 
 
