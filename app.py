@@ -3,27 +3,45 @@ import pandas as pd
 from openpyxl import load_workbook
 from io import BytesIO
 
-st.title("Auto Generate ID dari Database")
-
+st.title("All Bank ID Generator")
 
 mode = st.radio(
     "Pilih jenis file",
-    ["1 File (RK + Database dalam satu file)", "2 File (RK dan Database terpisah)"]
+    ["1 File (RK + Database)", "2 File (RK dan Database terpisah)"]
 )
 
 rk_file = None
 db_file = None
 
-if mode == "1 File (RK + Database dalam satu file)":
+if mode == "1 File (RK + Database)":
     rk_file = st.file_uploader("Upload file RK + Database", type=["xlsx"])
 else:
-    rk_file = st.file_uploader("Upload file Rekening Koran", type=["xlsx"])
-    db_file = st.file_uploader("Upload file Database", type=["xlsx"])
+    rk_file = st.file_uploader("Upload Rekening Koran", type=["xlsx"])
+    db_file = st.file_uploader("Upload Database", type=["xlsx"])
 
 
-# =============================
-# DETECT SHEET RK
-# =============================
+# =====================================
+# DETECT HEADER
+# =====================================
+def detect_header(df):
+
+    for i in range(min(20, len(df))):
+
+        row = df.iloc[i].astype(str).str.lower()
+
+        if any("uraian" in c for c in row) \
+        or any("description" in c for c in row) \
+        or any("keterangan" in c for c in row) \
+        or any("deskripsi" in c for c in row):
+
+            return i
+
+    return 0
+
+
+# =====================================
+# DETECT RK SHEET
+# =====================================
 def detect_rk_sheet(excel):
 
     for sheet in excel.sheet_names:
@@ -32,18 +50,18 @@ def detect_rk_sheet(excel):
 
         cols = [str(c).lower() for c in df.columns]
 
-        if any("uraian" in c for c in cols) or \
-           any("description" in c for c in cols) or \
-           any("keterangan" in c for c in cols):
+        if any("uraian" in c for c in cols) \
+        or any("description" in c for c in cols) \
+        or any("keterangan" in c for c in cols):
 
             return sheet
 
     return excel.sheet_names[0]
 
 
-# =============================
-# DETECT SHEET DATABASE
-# =============================
+# =====================================
+# DETECT DATABASE SHEET
+# =====================================
 def detect_db_sheet(excel):
 
     for sheet in excel.sheet_names:
@@ -55,165 +73,199 @@ def detect_db_sheet(excel):
         if "id" in cols:
             return sheet
 
-    return excel.sheet_names[0]
+    return excel.sheet_names[-1]
 
 
-# =============================
-# SEARCH ID
-# =============================
-def cari_id(text, kode_list, id_list):
+# =====================================
+# DETECT TRANSACTION COLUMN
+# =====================================
+def detect_transaction_col(df):
 
-    if pd.isna(text):
-        return None
+    for col in df.columns:
 
-    text = str(text).lower()
+        name = str(col).lower()
 
-    for kode, id_val in zip(kode_list, id_list):
+        if "uraian" in name \
+        or "description" in name \
+        or "keterangan" in name \
+        or "deskripsi" in name:
 
-        if str(kode).lower() in text:
-            return id_val
+            return col
 
-    return None
+    # fallback → kolom teks paling panjang
+    lengths = df.astype(str).apply(lambda x: x.str.len().mean())
+
+    return lengths.idxmax()
 
 
-# =============================
+# =====================================
+# DETECT DB COLUMN
+# =====================================
+def detect_db_columns(db):
+
+    kode_col = None
+    id_col = None
+
+    for col in db.columns:
+
+        name = str(col).lower()
+
+        if "kode" in name:
+            kode_col = col
+
+        if name == "id":
+            id_col = col
+
+    return kode_col, id_col
+
+
+# =====================================
+# FAST SEARCH
+# =====================================
+def generate_ids(text_series, kode_list, id_list):
+
+    results = []
+
+    for text in text_series.astype(str).str.lower():
+
+        found = None
+
+        for kode, id_val in zip(kode_list, id_list):
+
+            if str(kode).lower() in text:
+
+                found = id_val
+                break
+
+        results.append(found)
+
+    return results
+
+
+# =====================================
 # MAIN PROCESS
-# =============================
-if rk_file:
+# =====================================
+if mode == "1 File (RK + Database)" and rk_file:
 
     try:
 
-        # =============================
-        # LOAD RK & DB
-        # =============================
-        if mode == "1 File (RK + Database dalam satu file)":
+        excel = pd.ExcelFile(rk_file)
 
-            excel = pd.ExcelFile(rk_file)
+        rk_sheet = detect_rk_sheet(excel)
+        db_sheet = detect_db_sheet(excel)
 
-            rk_sheet = detect_rk_sheet(excel)
-            db_sheet = detect_db_sheet(excel)
+        preview = pd.read_excel(excel, sheet_name=rk_sheet, header=None)
 
-            rk = pd.read_excel(excel, sheet_name=rk_sheet)
-            db = pd.read_excel(excel, sheet_name=db_sheet)
+        header_row = detect_header(preview)
 
-            wb = load_workbook(rk_file)
-            ws = wb[rk_sheet]
+        rk = pd.read_excel(excel, sheet_name=rk_sheet, header=header_row)
+        db = pd.read_excel(excel, sheet_name=db_sheet)
 
-        else:
-
-            excel_rk = pd.ExcelFile(rk_file)
-
-            rk_sheet = detect_rk_sheet(excel_rk)
-
-            rk = pd.read_excel(excel_rk, sheet_name=rk_sheet)
-
-            excel_db = pd.ExcelFile(db_file)
-
-            db_sheet = detect_db_sheet(excel_db)
-
-            db = pd.read_excel(excel_db, sheet_name=db_sheet)
-
-            wb = load_workbook(rk_file)
-            ws = wb[rk_sheet]
-
-
-        # =============================
-        # DETECT KOLOM DATABASE
-        # =============================
-        db.columns = db.columns.str.strip()
-
-        kode_col = None
-        id_col = None
-
-        for col in db.columns:
-
-            name = col.lower()
-
-            if "kode" in name:
-                kode_col = col
-
-            if name == "id":
-                id_col = col
-
-
-        kode_list = db[kode_col].astype(str).tolist()
-        id_list = db[id_col].tolist()
-
-
-        # =============================
-        # DETECT KOLOM TRANSAKSI
-        # =============================
-        desc_col = None
-
-        for col in rk.columns:
-
-            name = col.lower()
-
-            if "uraian" in name or \
-               "description" in name or \
-               "keterangan" in name or \
-               "deskripsi" in name:
-
-                desc_col = col
-
-
-        # =============================
-        # CARI BARIS HEADER
-        # =============================
-        header_row = None
-
-        for r in range(1, 11):
-
-            for c in range(1, ws.max_column+1):
-
-                val = ws.cell(r,c).value
-
-                if val and str(val).lower() == "id":
-
-                    header_row = r
-                    id_col_excel = c
-
-        if header_row is None:
-
-            header_row = 1
-            id_col_excel = ws.max_column + 1
-
-            ws.cell(header_row, id_col_excel).value = "ID"
-
-
-        # =============================
-        # GENERATE ID
-        # =============================
-        desc_index = rk.columns.get_loc(desc_col)
-
-        for i in range(len(rk)):
-
-            row_excel = header_row + 1 + i
-
-            text = rk.iloc[i, desc_index]
-
-            id_val = cari_id(text, kode_list, id_list)
-
-            ws.cell(row_excel, id_col_excel).value = id_val
-
-
-        st.success("ID berhasil digenerate")
-
-
-        # =============================
-        # SAVE FILE TANPA MERUSAK FORMAT
-        # =============================
-        output = BytesIO()
-
-        wb.save(output)
-
-        st.download_button(
-            "Download Rekening Koran + ID",
-            output.getvalue(),
-            "RK_HASIL_ID.xlsx"
-        )
+        wb = load_workbook(rk_file)
+        ws = wb[rk_sheet]
 
     except Exception as e:
 
-        st.error("Terjadi error saat memproses file")
-        st.write(e)
+        st.error(e)
+        st.stop()
+
+
+elif mode == "2 File (RK dan Database terpisah)" and rk_file and db_file:
+
+    try:
+
+        excel_rk = pd.ExcelFile(rk_file)
+        rk_sheet = detect_rk_sheet(excel_rk)
+
+        preview = pd.read_excel(excel_rk, sheet_name=rk_sheet, header=None)
+
+        header_row = detect_header(preview)
+
+        rk = pd.read_excel(excel_rk, sheet_name=rk_sheet, header=header_row)
+
+        excel_db = pd.ExcelFile(db_file)
+        db_sheet = detect_db_sheet(excel_db)
+
+        db = pd.read_excel(excel_db, sheet_name=db_sheet)
+
+        wb = load_workbook(rk_file)
+        ws = wb[rk_sheet]
+
+    except Exception as e:
+
+        st.error(e)
+        st.stop()
+
+else:
+
+    st.stop()
+
+
+# =====================================
+# DETECT COLUMN
+# =====================================
+desc_col = detect_transaction_col(rk)
+
+kode_col, id_col = detect_db_columns(db)
+
+if kode_col is None or id_col is None:
+
+    st.error("Kolom kode unik / ID tidak ditemukan di database")
+    st.stop()
+
+
+kode_list = db[kode_col].astype(str).tolist()
+id_list = db[id_col].tolist()
+
+
+# =====================================
+# GENERATE IDS
+# =====================================
+rk["ID"] = generate_ids(rk[desc_col], kode_list, id_list)
+
+
+# =====================================
+# WRITE BACK TO EXCEL (KEEP FORMAT)
+# =====================================
+header_row_excel = None
+id_col_excel = None
+
+for r in range(1, 11):
+
+    for c in range(1, ws.max_column+1):
+
+        val = ws.cell(r,c).value
+
+        if val and str(val).lower() == "id":
+
+            header_row_excel = r
+            id_col_excel = c
+
+
+if header_row_excel is None:
+
+    header_row_excel = 1
+    id_col_excel = ws.max_column + 1
+
+    ws.cell(header_row_excel, id_col_excel).value = "ID"
+
+
+for i,val in enumerate(rk["ID"]):
+
+    ws.cell(header_row_excel+1+i, id_col_excel).value = val
+
+
+# =====================================
+# DOWNLOAD
+# =====================================
+output = BytesIO()
+
+wb.save(output)
+
+st.success("ID berhasil digenerate")
+
+st.download_button(
+    "Download RK dengan ID",
+    output.getvalue(),
+    "RK_HASIL_ID.xlsx"
+)
