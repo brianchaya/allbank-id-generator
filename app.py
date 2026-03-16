@@ -37,15 +37,16 @@ else:
 # =====================================
 def detect_header(file):
 
-    preview = pd.read_excel(file, header=None, nrows=20)
+    preview = pd.read_excel(file, header=None, nrows=25)
 
-    for i in range(20):
+    for i in range(25):
 
         row = preview.iloc[i].astype(str).str.lower()
 
-        if any("uraian" in cell for cell in row) or \
-           any("description" in cell for cell in row) or \
-           any("keterangan" in cell for cell in row):
+        if any("uraian" in cell for cell in row) \
+        or any("description" in cell for cell in row) \
+        or any("keterangan" in cell for cell in row) \
+        or any("deskripsi" in cell for cell in row):
 
             return i
 
@@ -53,7 +54,7 @@ def detect_header(file):
 
 
 # =====================================
-# DETECT KOLOM URAIAN
+# DETECT KOLOM DESKRIPSI
 # =====================================
 def detect_desc_column(df):
 
@@ -70,6 +71,9 @@ def detect_desc_column(df):
             return col
 
         if "keterangan" in name:
+            return col
+
+        if "deskripsi" in name:
             return col
 
     return None
@@ -99,7 +103,7 @@ def detect_db_columns(db):
 
 
 # =====================================
-# CARI ID
+# SEARCH ID
 # =====================================
 def cari_id(text, kode_list, id_list):
 
@@ -126,12 +130,17 @@ if rk_file:
         # =============================
         # LOAD FILE
         # =============================
-        if mode == "1 File (RK + Database dalam satu file)":
+        if mode == "1 File (RK + DB)":
 
             excel = pd.ExcelFile(rk_file)
 
-            rk = pd.read_excel(excel, sheet_name=excel.sheet_names[0])
-            db = pd.read_excel(excel, sheet_name=excel.sheet_names[1])
+            sheet_rk = excel.sheet_names[0]
+            sheet_db = excel.sheet_names[1]
+
+            header_row = detect_header(rk_file)
+
+            rk = pd.read_excel(excel, sheet_name=sheet_rk, header=header_row)
+            db = pd.read_excel(excel, sheet_name=sheet_db)
 
         else:
 
