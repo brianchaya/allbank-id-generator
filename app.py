@@ -13,33 +13,22 @@ rk_file = None
 db_file = None
 
 if mode == "1 File (RK + Database dalam satu file)":
-
-    rk_file = st.file_uploader(
-        "Upload file RK + Database",
-        type=["xlsx"]
-    )
-
+    rk_file = st.file_uploader("Upload file RK + Database", type=["xlsx"])
 else:
-
-    rk_file = st.file_uploader(
-        "Upload file Rekening Koran",
-        type=["xlsx","xls","csv"]
-    )
-
-    db_file = st.file_uploader(
-        "Upload file Database",
-        type=["xlsx","xls","csv"]
-    )
+    rk_file = st.file_uploader("Upload file Rekening Koran", type=["xlsx","xls","csv"])
+    db_file = st.file_uploader("Upload file Database", type=["xlsx","xls","csv"])
 
 
-# =====================================
-# DETECT HEADER
-# =====================================
-def detect_header(df_preview):
+# =============================
+# DETECT HEADER (tanpa asumsi nama kolom)
+# =============================
+def detect_header(file):
 
-    for i in range(min(25, len(df_preview))):
+    preview = pd.read_excel(file, header=None, nrows=30)
 
-        row = df_preview.iloc[i].astype(str).str.lower()
+    for i in range(30):
+
+        row = preview.iloc[i].astype(str).str.lower()
 
         if any("uraian" in cell for cell in row) \
         or any("description" in cell for cell in row) \
@@ -51,35 +40,32 @@ def detect_header(df_preview):
     return 0
 
 
-# =====================================
-# DETECT KOLOM DESKRIPSI
-# =====================================
-def detect_desc_column(df):
+# =============================
+# DETECT KOLOM TEKS TERPANJANG (URAiAN)
+# =============================
+def detect_text_column(df):
 
-    df.columns = df.columns.str.strip()
+    text_cols = []
 
     for col in df.columns:
 
-        name = col.lower()
+        if df[col].dtype == object:
 
-        if "uraian" in name:
-            return col
+            avg_len = df[col].astype(str).str.len().mean()
 
-        if "description" in name:
-            return col
+            text_cols.append((col, avg_len))
 
-        if "keterangan" in name:
-            return col
+    if not text_cols:
+        return None
 
-        if "deskripsi" in name:
-            return col
+    text_cols.sort(key=lambda x: x[1], reverse=True)
 
-    return None
+    return text_cols[0][0]
 
 
-# =====================================
+# =============================
 # DETECT KOLOM DATABASE
-# =====================================
+# =============================
 def detect_db_columns(db):
 
     db.columns = db.columns.str.strip()
@@ -100,9 +86,9 @@ def detect_db_columns(db):
     return kode_col, id_col
 
 
-# =====================================
+# =============================
 # SEARCH ID
-# =====================================
+# =============================
 def cari_id(text, kode_list, id_list):
 
     if pd.isna(text):
@@ -118,15 +104,15 @@ def cari_id(text, kode_list, id_list):
     return None
 
 
-# =====================================
+# =============================
 # MAIN PROCESS
-# =====================================
+# =============================
 if rk_file:
 
     try:
 
         # =============================
-        # MODE 1 FILE
+        # LOAD FILE
         # =============================
         if mode == "1 File (RK + Database dalam satu file)":
 
@@ -137,56 +123,42 @@ if rk_file:
 
             preview = pd.read_excel(excel, sheet_name=sheet_rk, header=None)
 
-            header_row = detect_header(preview)
+            header_row = detect_header(rk_file)
 
             rk = pd.read_excel(excel, sheet_name=sheet_rk, header=header_row)
             db = pd.read_excel(excel, sheet_name=sheet_db)
 
-
-        # =============================
-        # MODE 2 FILE
-        # =============================
         else:
 
             if rk_file.name.endswith(".csv"):
-
                 rk = pd.read_csv(rk_file)
-
             else:
-
-                preview = pd.read_excel(rk_file, header=None)
-
-                header_row = detect_header(preview)
-
+                header_row = detect_header(rk_file)
                 rk = pd.read_excel(rk_file, header=header_row)
-
 
             if db_file is None:
                 st.stop()
 
             if db_file.name.endswith(".csv"):
-
                 db = pd.read_csv(db_file)
-
             else:
-
                 db = pd.read_excel(db_file)
 
 
         # =============================
-        # DETECT COLUMN RK
+        # DETECT TEXT COLUMN (URAiAN)
         # =============================
-        desc_col = detect_desc_column(rk)
+        desc_col = detect_text_column(rk)
 
         if desc_col is None:
 
-            st.error("Kolom uraian transaksi / description tidak ditemukan")
-            st.write("Kolom yang tersedia:", rk.columns)
+            st.error("Tidak dapat menemukan kolom transaksi")
+            st.write("Kolom tersedia:", rk.columns)
             st.stop()
 
 
         # =============================
-        # DETECT COLUMN DATABASE
+        # DETECT DATABASE COLUMN
         # =============================
         kode_col, id_col = detect_db_columns(db)
 
