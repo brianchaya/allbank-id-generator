@@ -1,23 +1,19 @@
 import streamlit as st
 import pandas as pd
 from openpyxl import load_workbook
+from openpyxl.styles import PatternFill
 from io import BytesIO
 
 st.title("All Bank ID Generator")
 
-mode = st.radio(
-    "Pilih jenis file",
-    ["1 File (RK + Database)", "2 File (RK dan Database terpisah)"]
-)
+# =====================================
+# ONLY 2 FILE (sesuai request)
+# =====================================
+rk_file = st.file_uploader("Upload Rekening Koran", type=["xlsx"])
+db_file = st.file_uploader("Upload Database", type=["xlsx"])
 
-rk_file = None
-db_file = None
-
-if mode == "1 File (RK + Database)":
-    rk_file = st.file_uploader("Upload file RK + Database", type=["xlsx"])
-else:
-    rk_file = st.file_uploader("Upload Rekening Koran", type=["xlsx"])
-    db_file = st.file_uploader("Upload Database", type=["xlsx"])
+if not rk_file or not db_file:
+    st.stop()
 
 
 # =====================================
@@ -92,7 +88,6 @@ def detect_transaction_col(df):
 
             return col
 
-    # fallback → kolom teks paling panjang
     lengths = df.astype(str).apply(lambda x: x.str.len().mean())
 
     return lengths.idxmax()
@@ -120,13 +115,9 @@ def detect_db_columns(db):
 
 
 # =====================================
-# FAST SEARCH
+# FAST SEARCH (ORIGINAL - TIDAK DIUBAH)
 # =====================================
 def generate_ids(text_series, kode_list, id_list):
-
-    # gabung & sort dari yang paling panjang
-    pairs = list(zip(kode_list, id_list))
-    pairs.sort(key=lambda x: len(str(x[0])), reverse=True)
 
     results = []
 
@@ -134,7 +125,7 @@ def generate_ids(text_series, kode_list, id_list):
 
         found = None
 
-        for kode, id_val in pairs:
+        for kode, id_val in zip(kode_list, id_list):
 
             if str(kode).lower() in text:
 
@@ -147,61 +138,30 @@ def generate_ids(text_series, kode_list, id_list):
 
 
 # =====================================
-# MAIN PROCESS
+# LOAD FILE
 # =====================================
-if mode == "1 File (RK + Database)" and rk_file:
+try:
 
-    try:
+    excel_rk = pd.ExcelFile(rk_file)
+    rk_sheet = detect_rk_sheet(excel_rk)
 
-        excel = pd.ExcelFile(rk_file)
+    preview = pd.read_excel(excel_rk, sheet_name=rk_sheet, header=None)
 
-        rk_sheet = detect_rk_sheet(excel)
-        db_sheet = detect_db_sheet(excel)
+    header_row = detect_header(preview)
 
-        preview = pd.read_excel(excel, sheet_name=rk_sheet, header=None)
+    rk = pd.read_excel(excel_rk, sheet_name=rk_sheet, header=header_row)
 
-        header_row = detect_header(preview)
+    excel_db = pd.ExcelFile(db_file)
+    db_sheet = detect_db_sheet(excel_db)
 
-        rk = pd.read_excel(excel, sheet_name=rk_sheet, header=header_row)
-        db = pd.read_excel(excel, sheet_name=db_sheet)
+    db = pd.read_excel(excel_db, sheet_name=db_sheet)
 
-        wb = load_workbook(rk_file)
-        ws = wb[rk_sheet]
+    wb = load_workbook(rk_file)
+    ws = wb[rk_sheet]
 
-    except Exception as e:
+except Exception as e:
 
-        st.error(e)
-        st.stop()
-
-
-elif mode == "2 File (RK dan Database terpisah)" and rk_file and db_file:
-
-    try:
-
-        excel_rk = pd.ExcelFile(rk_file)
-        rk_sheet = detect_rk_sheet(excel_rk)
-
-        preview = pd.read_excel(excel_rk, sheet_name=rk_sheet, header=None)
-
-        header_row = detect_header(preview)
-
-        rk = pd.read_excel(excel_rk, sheet_name=rk_sheet, header=header_row)
-
-        excel_db = pd.ExcelFile(db_file)
-        db_sheet = detect_db_sheet(excel_db)
-
-        db = pd.read_excel(excel_db, sheet_name=db_sheet)
-
-        wb = load_workbook(rk_file)
-        ws = wb[rk_sheet]
-
-    except Exception as e:
-
-        st.error(e)
-        st.stop()
-
-else:
-
+    st.error(e)
     st.stop()
 
 
@@ -226,6 +186,16 @@ id_list = db[id_col].tolist()
 # GENERATE IDS
 # =====================================
 rk["ID"] = generate_ids(rk[desc_col], kode_list, id_list)
+
+
+# =====================================
+# PREVIEW + INFO (FITUR TAMBAHAN)
+# =====================================
+st.subheader("Preview Hasil")
+st.dataframe(rk.head(20))
+
+missing_count = rk["ID"].isna().sum()
+st.write(f"Jumlah ID tidak terisi: {missing_count}")
 
 
 # =====================================
@@ -254,9 +224,17 @@ if header_row_excel is None:
     ws.cell(header_row_excel, id_col_excel).value = "ID"
 
 
+# warna merah untuk ID kosong
+red_fill = PatternFill(start_color="FFFF0000", end_color="FFFF0000", fill_type="solid")
+
+
 for i,val in enumerate(rk["ID"]):
 
-    ws.cell(header_row_excel+i, id_col_excel).value = val
+    cell = ws.cell(header_row_excel+1+i, id_col_excel)
+    cell.value = val
+
+    if pd.isna(val):
+        cell.fill = red_fill
 
 
 # =====================================
