@@ -1,3 +1,4 @@
+hadeh masih blm bisa, nih code saya :
 import streamlit as st
 import pandas as pd
 from openpyxl import load_workbook
@@ -227,6 +228,11 @@ id_list = db[id_col].tolist()
 # =====================================
 rk["ID"] = generate_ids(rk[desc_col], kode_list, id_list)
 
+st.subheader("Preview Hasil (Full Data)")
+st.dataframe(rk)
+
+missing_count = rk["ID"].isna().sum()
+st.write(f"Jumlah ID tidak terisi: {missing_count}")
 
 # =====================================
 # WRITE BACK TO EXCEL (KEEP FORMAT)
@@ -254,9 +260,17 @@ if header_row_excel is None:
     ws.cell(header_row_excel, id_col_excel).value = "ID"
 
 
+from openpyxl.styles import PatternFill
+
+red_fill = PatternFill(start_color="FFFF0000", end_color="FFFF0000", fill_type="solid")
+
 for i,val in enumerate(rk["ID"]):
 
-    ws.cell(header_row_excel+i, id_col_excel).value = val
+    cell = ws.cell(header_row_excel+i, id_col_excel)
+    cell.value = val
+
+    if pd.isna(val):
+        cell.fill = red_fill
 
 
 # =====================================
