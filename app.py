@@ -227,8 +227,16 @@ id_list = db[id_col].tolist()
 # =====================================
 ids = generate_ids(rk[desc_col], kode_list, id_list)
 
-if "ID" in rk.columns:
-    rk["ID"] = ids
+# cari kolom ID secara fleksibel
+id_col_name = None
+
+for col in rk.columns:
+    if str(col).strip().lower() == "id":
+        id_col_name = col
+        break
+
+if id_col_name:
+    rk[id_col_name] = ids
 else:
     rk.insert(len(rk.columns), "ID", ids)
 
