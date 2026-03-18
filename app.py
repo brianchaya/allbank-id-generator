@@ -26,18 +26,25 @@ else:
 # =====================================
 def detect_header(df):
 
+    best_row = 0
+    max_valid = 0
+
     for i in range(min(20, len(df))):
 
-        row = df.iloc[i].astype(str).str.lower()
+        row = df.iloc[i]
 
-        if (
-            any("uraian" in c for c in row)
-            or any("description" in c for c in row)
-            or any("keterangan" in c for c in row)
-        ):
-            return i
+        # hitung berapa banyak cell yang "kayak header"
+        valid_count = sum([
+            isinstance(x, str) and len(x.strip()) > 0
+            for x in row
+        ])
 
-    return 0
+        # pilih baris dengan isi terbanyak (biasanya header)
+        if valid_count > max_valid:
+            max_valid = valid_count
+            best_row = i
+
+    return best_row
 
 
 # =====================================
