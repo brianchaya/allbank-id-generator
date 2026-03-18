@@ -230,7 +230,7 @@ ids = generate_ids(rk[desc_col], kode_list, id_list)
 # cari kolom ID yg sudah ada (flexible)
 id_col_name = None
 for col in rk.columns:
-    if str(col).strip().lower() == "id":
+    if str(col).strip().lower() in ["id"]:
         id_col_name = col
         break
 
@@ -242,7 +242,8 @@ else:
 st.subheader("Preview Hasil (Full Data)")
 st.dataframe(rk)
 
-missing_count = rk["ID"].isna().sum()
+col_used = id_col_name if id_col_name else "ID"
+missing_count = rk[col_used].isna().sum()
 st.write(f"Jumlah ID tidak terisi: {missing_count}")
 
 # =====================================
@@ -265,7 +266,7 @@ for r in range(1, 11):
 
 if header_row_excel is None:
 
-    header_row_excel = 0
+    header_row_excel = 1
     id_col_excel = ws.max_column + 1
 
 ws.cell(header_row_excel, id_col_excel).value = "ID"
@@ -275,7 +276,7 @@ from openpyxl.styles import PatternFill
 
 red_fill = PatternFill(start_color="FFFF0000", end_color="FFFF0000", fill_type="solid")
 
-for i,val in enumerate(rk["ID"], start=1):
+for i,val in enumerate(rk[col_used], start=1):
 
     cell = ws.cell(header_row_excel + i, id_col_excel)
     
