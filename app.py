@@ -225,7 +225,12 @@ id_list = db[id_col].tolist()
 # =====================================
 # GENERATE IDS
 # =====================================
-rk["ID"] = generate_ids(rk[desc_col], kode_list, id_list)
+ids = generate_ids(rk[desc_col], kode_list, id_list)
+
+if "ID" in rk.columns:
+    rk["ID"] = ids
+else:
+    rk.insert(len(rk.columns), "ID", ids)
 
 st.subheader("Preview Hasil (Full Data)")
 st.dataframe(rk)
