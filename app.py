@@ -263,8 +263,10 @@ from openpyxl.styles import PatternFill
 
 red_fill = PatternFill(start_color="FFFF0000", end_color="FFFF0000", fill_type="solid")
 
-for i, val in enumerate(rk["ID"], start=1):
-    cell = ws.cell(header_row_excel + i, id_col_excel)
+for i, val in enumerate(rk["ID"]):
+    excel_row = header_row_excel + 1 + i
+    cell = ws.cell(excel_row, id_col_excel)
+
     cell.value = val
 
     if pd.isna(val):
