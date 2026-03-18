@@ -225,7 +225,19 @@ id_list = db[id_col].tolist()
 # =====================================
 # GENERATE IDS
 # =====================================
-rk["ID"] = generate_ids(rk[desc_col], kode_list, id_list)
+ids = generate_ids(rk[desc_col], kode_list, id_list)
+
+# cari kolom ID yg sudah ada (flexible)
+id_col_name = None
+for col in rk.columns:
+    if str(col).strip().lower() == "id":
+        id_col_name = col
+        break
+
+if id_col_name:
+    rk[id_col_name] = ids
+else:
+    rk["ID"] = ids
 
 st.subheader("Preview Hasil (Full Data)")
 st.dataframe(rk)
@@ -256,16 +268,17 @@ if header_row_excel is None:
     header_row_excel = 1
     id_col_excel = ws.max_column + 1
 
-    ws.cell(header_row_excel, id_col_excel).value = "ID"
+ws.cell(header_row_excel, id_col_excel).value = "ID"
 
 
 from openpyxl.styles import PatternFill
 
 red_fill = PatternFill(start_color="FFFF0000", end_color="FFFF0000", fill_type="solid")
 
-for i,val in enumerate(rk["ID"]):
+for i,val in enumerate(rk["ID"], start=1):
 
-    cell = ws.cell(header_row_excel+i, id_col_excel)
+    cell = ws.cell(header_row_excel + i, id_col_excel)
+    
     cell.value = val
 
     if pd.isna(val):
