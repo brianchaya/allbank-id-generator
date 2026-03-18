@@ -1,4 +1,3 @@
-hadeh masih blm bisa, nih code saya :
 import streamlit as st
 import pandas as pd
 from openpyxl import load_workbook
