@@ -230,7 +230,7 @@ ids = generate_ids(rk[desc_col], kode_list, id_list)
 # cari kolom ID yg sudah ada (flexible)
 id_col_name = None
 for col in rk.columns:
-    if str(col).strip().lower() in ["id"]:
+    if val and str(val).strip().lower() == "id":
         id_col_name = col
         break
 
@@ -266,7 +266,7 @@ for r in range(1, 11):
 
 if header_row_excel is None:
 
-    header_row_excel = 1
+    header_row_excel = header_row + 1
     id_col_excel = ws.max_column + 1
 
 ws.cell(header_row_excel, id_col_excel).value = "ID"
