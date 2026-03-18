@@ -157,16 +157,18 @@ if mode == "1 File (RK + Database)" and rk_file:
 
     rk = pd.read_excel(excel, sheet_name=rk_sheet, header=header_row)
     
-    while True:
-        first_row = rk.iloc[0].astype(str).str.lower().tolist()
-        col_names = [str(c).lower() for c in rk.columns]
+    # FIX HEADER DOUBLE / UNNAMED ROW
+    # =====================================
     
-        match_count = sum([1 for x in first_row if x in col_names])
+    # kalau baris pertama isinya mirip nama kolom → berarti itu header nyasar
+    first_row = rk.iloc[0].astype(str).str.lower().tolist()
+    col_names = [str(c).lower() for c in rk.columns]
     
-        if match_count >= len(col_names) // 2:
-            rk = rk.iloc[1:].reset_index(drop=True)
-        else:
-            break
+    match_count = sum([1 for x in first_row if x in col_names])
+    
+    # kalau banyak yg sama → buang baris itu
+    if match_count >= len(col_names) // 2:
+        rk = rk.iloc[1:].reset_index(drop=True)
         
     db = pd.read_excel(excel, sheet_name=db_sheet)
 
