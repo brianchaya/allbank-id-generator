@@ -275,7 +275,7 @@ from openpyxl.styles import PatternFill
 
 red_fill = PatternFill(start_color="FFFF0000", end_color="FFFF0000", fill_type="solid")
 
-for i,val in enumerate(rk["ID"], start=1):
+for i,val in enumerate(rk["ID"], start=0):
 
     cell = ws.cell(header_row_excel + i, id_col_excel)
     
