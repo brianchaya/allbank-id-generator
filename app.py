@@ -239,16 +239,14 @@ st.write(f"Jumlah ID tidak terisi: {missing_count}")
 header_row_excel = None
 id_col_excel = None
 
-for r in range(1, 11):
+# posisi header excel FIX dari pandas
+header_row_excel = header_row + 1
 
-    for c in range(1, ws.max_column+1):
+# cari kolom ID dari dataframe (bukan excel)
+id_col_excel = list(rk.columns).index("ID") + 1
 
-        val = ws.cell(r,c).value
-
-        if val and str(val).lower() == "id":
-
-            header_row_excel = r
-            id_col_excel = c
+# set header
+ws.cell(header_row_excel, id_col_excel).value = "ID"
 
 
 if header_row_excel is None:
