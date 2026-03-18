@@ -252,7 +252,7 @@ if header_row_excel is None:
 
 for i,val in enumerate(rk["ID"]):
 
-    ws.cell(header_row_excel+1+i, id_col_excel).value = val
+    ws.cell(header_row_excel+i, id_col_excel).value = val
 
 
 # =====================================
