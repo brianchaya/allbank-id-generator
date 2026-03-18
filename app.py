@@ -92,7 +92,6 @@ def detect_transaction_col(df):
 
             return col
 
-    # fallback → kolom teks paling panjang
     lengths = df.astype(str).apply(lambda x: x.str.len().mean())
 
     return lengths.idxmax()
@@ -124,7 +123,6 @@ def detect_db_columns(db):
 # =====================================
 def generate_ids(text_series, kode_list, id_list):
 
-    # gabung & sort dari yang paling panjang
     pairs = list(zip(kode_list, id_list))
     pairs.sort(key=lambda x: len(str(x[0])), reverse=True)
 
@@ -137,7 +135,6 @@ def generate_ids(text_series, kode_list, id_list):
         for kode, id_val in pairs:
 
             if str(kode).lower() in text:
-
                 found = id_val
                 break
 
@@ -201,7 +198,6 @@ elif mode == "2 File (RK dan Database terpisah)" and rk_file and db_file:
         st.stop()
 
 else:
-
     st.stop()
 
 
@@ -213,10 +209,8 @@ desc_col = detect_transaction_col(rk)
 kode_col, id_col = detect_db_columns(db)
 
 if kode_col is None or id_col is None:
-
     st.error("Kolom kode unik / ID tidak ditemukan di database")
     st.stop()
-
 
 kode_list = db[kode_col].astype(str).tolist()
 id_list = db[id_col].tolist()
@@ -227,10 +221,10 @@ id_list = db[id_col].tolist()
 # =====================================
 ids = generate_ids(rk[desc_col], kode_list, id_list)
 
-# cari kolom ID yg sudah ada (flexible)
+# DETECT KOLOM ID (FIX BUG DISINI)
 id_col_name = None
 for col in rk.columns:
-    if val and str(val).lower() == "id":
+    if str(col).strip().lower() == "id":
         id_col_name = col
         break
 
@@ -239,47 +233,46 @@ if id_col_name:
 else:
     rk["ID"] = ids
 
+col_used = id_col_name if id_col_name else "ID"
+
+# =====================================
+# PREVIEW
+# =====================================
 st.subheader("Preview Hasil (Full Data)")
 st.dataframe(rk)
 
-col_used = id_col_name if id_col_name else "ID"
 missing_count = rk[col_used].isna().sum()
 st.write(f"Jumlah ID tidak terisi: {missing_count}")
 
+
 # =====================================
-# WRITE BACK TO EXCEL (KEEP FORMAT)
+# WRITE BACK TO EXCEL
 # =====================================
 header_row_excel = None
 id_col_excel = None
 
 for r in range(1, 11):
-
-    for c in range(1, ws.max_column+1):
-
-        val = ws.cell(r,c).value
-
-        if val and str(val).lower() == "id":
-
+    for c in range(1, ws.max_column + 1):
+        val = ws.cell(r, c).value
+        if val and str(val).strip().lower() == "id":
             header_row_excel = r
             id_col_excel = c
 
-
+# kalau tidak ketemu, pakai posisi header pandas
 if header_row_excel is None:
-
     header_row_excel = header_row + 1
     id_col_excel = ws.max_column + 1
 
+# SET HEADER
 ws.cell(header_row_excel, id_col_excel).value = "ID"
-
 
 from openpyxl.styles import PatternFill
 
 red_fill = PatternFill(start_color="FFFF0000", end_color="FFFF0000", fill_type="solid")
 
-for i,val in enumerate(rk[col_used], start=1):
+for i, val in enumerate(rk[col_used], start=1):
 
     cell = ws.cell(header_row_excel + i, id_col_excel)
-    
     cell.value = val
 
     if pd.isna(val):
@@ -290,7 +283,6 @@ for i,val in enumerate(rk[col_used], start=1):
 # DOWNLOAD
 # =====================================
 output = BytesIO()
-
 wb.save(output)
 
 st.success("ID berhasil digenerate")
