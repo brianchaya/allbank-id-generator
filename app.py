@@ -124,13 +124,17 @@ def detect_db_columns(db):
 # =====================================
 def generate_ids(text_series, kode_list, id_list):
 
+    # gabung & sort dari yang paling panjang
+    pairs = list(zip(kode_list, id_list))
+    pairs.sort(key=lambda x: len(str(x[0])), reverse=True)
+
     results = []
 
     for text in text_series.astype(str).str.lower():
 
         found = None
 
-        for kode, id_val in zip(kode_list, id_list):
+        for kode, id_val in pairs:
 
             if str(kode).lower() in text:
 
