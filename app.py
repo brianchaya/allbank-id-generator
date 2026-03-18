@@ -156,6 +156,18 @@ if mode == "1 File (RK + Database)" and rk_file:
     header_row = detect_header(preview)
 
     rk = pd.read_excel(excel, sheet_name=rk_sheet, header=header_row)
+    
+    while True:
+    first_row = rk.iloc[0].astype(str).str.lower().tolist()
+    col_names = [str(c).lower() for c in rk.columns]
+
+    match_count = sum([1 for x in first_row if x in col_names])
+
+    if match_count >= len(col_names) // 2:
+        rk = rk.iloc[1:].reset_index(drop=True)
+    else:
+        break
+        
     db = pd.read_excel(excel, sheet_name=db_sheet)
 
     wb = load_workbook(rk_file)
