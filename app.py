@@ -230,7 +230,7 @@ ids = generate_ids(rk[desc_col], kode_list, id_list)
 # cari kolom ID yg sudah ada (flexible)
 id_col_name = None
 for col in rk.columns:
-    if val and str(val).strip().lower() == "id":
+    if val and str(val).lower() == "id":
         id_col_name = col
         break
 
