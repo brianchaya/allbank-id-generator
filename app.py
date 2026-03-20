@@ -277,7 +277,7 @@ wb.save(output)
 blank_count = rk["ID"].isna().sum()
 total_rows = len(rk)
 
-st.warning(f"{blank_count} IDs were not found (out of {total_rows} rows)")
+st.warning(f"{blank_count} IDs were not found (out of {total_rows} data)")
 
 st.download_button(
     "Download RK dengan ID",
