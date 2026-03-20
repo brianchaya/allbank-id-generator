@@ -280,7 +280,7 @@ total_rows = len(rk)
 st.warning(f"{blank_count} IDs were not found (out of {total_rows} data)")
 
 st.download_button(
-    "Download RK dengan ID",
+    "Download RK with ID",
     output.getvalue(),
     "RK_HASIL_ID.xlsx"
 )
