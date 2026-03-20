@@ -20,7 +20,6 @@ else:
     rk_file = st.file_uploader("Upload Rekening Koran", type=["xlsx"])
     db_file = st.file_uploader("Upload Database", type=["xlsx"])
 
-
 # =====================================
 # DETECT HEADER (FIXED)
 # =====================================
@@ -212,7 +211,7 @@ desc_col = detect_transaction_col(rk)
 kode_col, id_col = detect_db_columns(db)
 
 if kode_col is None or id_col is None:
-    st.error("Kolom kode unik / ID tidak ditemukan di database")
+    st.error("Unique code or ID column not found in database")
     st.stop()
 
 kode_list = db[kode_col].astype(str).tolist()
@@ -272,7 +271,13 @@ for i, val in enumerate(rk["ID"]):
 output = BytesIO()
 wb.save(output)
 
-st.success("ID berhasil digenerate")
+# =====================================
+# SUMMARY INFO
+# =====================================
+blank_count = rk["ID"].isna().sum()
+total_rows = len(rk)
+
+st.warning(f"{blank_count} IDs were not found (out of {total_rows} rows)")
 
 st.download_button(
     "Download RK dengan ID",
