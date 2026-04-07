@@ -128,25 +128,38 @@ def detect_db_columns(db):
 # =====================================
 def generate_ids(text_series, kode_list, id_list):
 
-    pairs = list(zip(kode_list, id_list))
+    # Bersihkan pasangan yang kode-nya kosong/nan
+    pairs = [
+        (kode, id_val)
+        for kode, id_val in zip(kode_list, id_list)
+        if str(kode).strip() not in ("", "nan", "none", "N/A", "n/a")
+    ]
+
+    # Urutkan dari yang paling panjang (lebih spesifik duluan)
     pairs.sort(key=lambda x: len(str(x[0])), reverse=True)
 
     results = []
 
-    for text in text_series.astype(str).str.lower():
+    for text in text_series:
+        # Handle NaN/None di kolom deskripsi
+        if pd.isna(text):
+            results.append(None)
+            continue
 
+        text_lower = str(text).lower()
         found = None
 
         for kode, id_val in pairs:
-
-            if str(kode).lower() in text:
-                found = id_val
-                break
+            try:
+                if str(kode).lower() in text_lower:
+                    found = id_val
+                    break
+            except Exception:
+                continue
 
         results.append(found)
 
     return results
-
 
 # =====================================
 # MAIN PROCESS
