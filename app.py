@@ -53,18 +53,21 @@ def detect_rk_sheet(excel):
 
     for sheet in excel.sheet_names:
 
-        df = pd.read_excel(excel, sheet_name=sheet, nrows=20)
+        # Pakai header=None supaya bisa scan semua cell, bukan cuma nama kolom
+        df = pd.read_excel(excel, sheet_name=sheet, header=None, nrows=20)
 
-        cols = [str(c).lower() for c in df.columns]
+        # Cek semua cell di 20 baris pertama
+        all_text = df.astype(str).values.flatten()
 
-        if any("uraian" in c for c in cols) \
-        or any("description" in c for c in cols) \
-        or any("keterangan" in c for c in cols):
-
+        if any(
+            "uraian" in str(x).lower() or
+            "description" in str(x).lower() or
+            "keterangan" in str(x).lower()
+            for x in all_text
+        ):
             return sheet
 
     return excel.sheet_names[0]
-
 
 # =====================================
 # DETECT DATABASE SHEET
