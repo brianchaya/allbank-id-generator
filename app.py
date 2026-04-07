@@ -131,22 +131,24 @@ def detect_db_columns(db):
 # =====================================
 def generate_ids(text_series, kode_list, id_list):
 
-    # Bersihkan pasangan yang kode-nya kosong/nan
-    pairs = [
-        (kode, id_val)
-        for kode, id_val in zip(kode_list, id_list)
-        if str(kode).strip() not in ("", "nan", "none", "N/A", "n/a")
-    ]
+    # Explode: pisah kode yang ada ";" jadi entry terpisah
+    pairs = []
+    for kode, id_val in zip(kode_list, id_list):
+        sub_kodes = [k.strip() for k in str(kode).split(";")]
+        for sk in sub_kodes:
+            if sk not in ("", "nan", "none", "N/A", "n/a"):
+                pairs.append((sk, id_val))
 
     # Urutkan dari yang paling panjang (lebih spesifik duluan)
     pairs.sort(key=lambda x: len(str(x[0])), reverse=True)
 
     results = []
+    is_double_id = []  # flag untuk warna biru
 
     for text in text_series:
-        # Handle NaN/None di kolom deskripsi
         if pd.isna(text):
             results.append(None)
+            is_double_id.append(False)
             continue
 
         text_lower = str(text).lower()
@@ -162,7 +164,13 @@ def generate_ids(text_series, kode_list, id_list):
 
         results.append(found)
 
-    return results
+        # Cek apakah ID yang ditemukan adalah double (ada ";" di id_val)
+        if found is not None and ";" in str(found):
+            is_double_id.append(True)
+        else:
+            is_double_id.append(False)
+
+    return results, is_double_id
 
 # =====================================
 # MAIN PROCESS
@@ -237,48 +245,43 @@ id_list = db[id_col].tolist()
 # =====================================
 # GENERATE IDS
 # =====================================
-rk["ID"] = generate_ids(rk[desc_col], kode_list, id_list)
+rk["ID"], is_double_id = generate_ids(rk[desc_col], kode_list, id_list)
 
 st.subheader("Preview Hasil")
 st.dataframe(rk)
 
 # =====================================
-# WRITE BACK TO EXCEL (SUPER FIX)
+# WRITE BACK TO EXCEL
 # =====================================
-
-# 1. header posisi fix dari pandas
 header_row_excel = header_row + 1
 
-# 2. skip baris kosong / fake header
 while ws.cell(header_row_excel, 1).value is None:
     header_row_excel += 1
 
-# 3. cari kolom ID di excel (JANGAN pakai pandas index)
 id_col_excel = None
 
 for c in range(1, ws.max_column + 1):
     val = ws.cell(header_row_excel, c).value
-
     if val and str(val).strip().lower() == "id":
         id_col_excel = c
         break
 
-# 4. kalau belum ada → tambah kolom baru
 if id_col_excel is None:
     id_col_excel = ws.max_column + 1
     ws.cell(header_row_excel, id_col_excel).value = "ID"
 
-# 5. isi data
-red_fill = PatternFill(start_color="FFFF0000", end_color="FFFF0000", fill_type="solid")
+red_fill  = PatternFill(start_color="FFFF0000", end_color="FFFF0000", fill_type="solid")
+blue_fill = PatternFill(start_color="FFADD8E6", end_color="FFADD8E6", fill_type="solid")
 
-for i, val in enumerate(rk["ID"]):
+for i, (val, double_flag) in enumerate(zip(rk["ID"], is_double_id)):
     excel_row = header_row_excel + 1 + i
     cell = ws.cell(excel_row, id_col_excel)
-
     cell.value = val
 
-    if pd.isna(val):
+    if pd.isna(val) or val is None:
         cell.fill = red_fill
+    elif double_flag:
+        cell.fill = blue_fill
 
 
 # =====================================
