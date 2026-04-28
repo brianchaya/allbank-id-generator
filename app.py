@@ -152,23 +152,22 @@ def generate_ids(text_series, kode_list, id_list):
             continue
 
         text_lower = str(text).lower()
-        found = None
+        found_ids = []
 
         for kode, id_val in pairs:
             try:
-                if str(kode).lower() in text_lower:
-                    found = id_val
-                    break
+                kode_upper = str(kode).upper()
+                pattern = r'(?<![A-Z0-9])' + re.escape(kode_upper) + r'(?![A-Z0-9])'
+                if re.search(pattern, str(text).upper()):
+                    id_str = str(id_val)
+                    if id_str not in found_ids:
+                        found_ids.append(id_str)
             except Exception:
                 continue
 
-        results.append(found)
-
-        # Cek apakah ID yang ditemukan adalah double (ada ";" di id_val)
-        if found is not None and ";" in str(found):
-            is_double_id.append(True)
-        else:
-            is_double_id.append(False)
+        final_id = " ; ".join(found_ids) if found_ids else None
+        results.append(final_id)
+        is_double_id.append(len(found_ids) > 1)
 
     return results, is_double_id
 
