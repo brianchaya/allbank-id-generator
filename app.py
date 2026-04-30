@@ -159,7 +159,8 @@ def generate_ids(text_series, kode_list, id_list):
 
         for kode, id_val in pairs:
             try:
-                if str(kode).upper() in str(text).upper():
+                pattern = r'\b' + re.escape(str(kode).upper()) + r'\b'
+                if re.search(pattern, str(text).upper()):
                     id_str = str(id_val)
                     if id_str not in found_ids:
                         found_ids.append(id_str)
