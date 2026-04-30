@@ -142,8 +142,14 @@ def generate_ids(text_series, kode_list, id_list):
     # Urutkan dari yang paling panjang (lebih spesifik duluan)
     pairs.sort(key=lambda x: len(str(x[0])), reverse=True)
 
-    st.write(pairs[:3])
-    st.write(str(text_series.iloc[0]).upper())
+    st.write("Test kode:", pairs[0][0])
+    st.write("Test text:", str(text_series.iloc[0]).upper())
+    kode_upper = str(pairs[0][0]).upper().strip()
+    text_upper = str(text_series.iloc[0]).upper()
+    pattern = r'(?:^|(?<=[^A-Z0-9]))' + re.escape(kode_upper) + r'(?=[^A-Z0-9]|$)'
+    st.write("Pattern:", pattern)
+    st.write("Match:", re.search(pattern, text_upper))
+    st.write("Simple in match:", kode_upper in text_upper)
     
     results = []
     is_double_id = []  # flag untuk warna biru
