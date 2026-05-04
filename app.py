@@ -310,7 +310,7 @@ for i, (val, double_flag, low_flag) in enumerate(zip(rk["ID"], is_double_id, is_
 
     if pd.isna(val) or val is None:
         cell.fill = red_fill
-    elif double_flag:
+    elif ";" in str(val):
         cell.fill = blue_fill
     elif low_flag:  
         cell.fill = pink_fill
