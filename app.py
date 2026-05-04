@@ -131,7 +131,6 @@ def detect_db_columns(db):
 # =====================================
 def generate_ids(text_series, kode_list, id_list):
 
-    # Explode: pisah kode yang ada ";" jadi entry terpisah
     pairs = []
     for kode, id_val in zip(kode_list, id_list):
         sub_kodes = [k.strip() for k in str(kode).split(";")]
@@ -139,20 +138,10 @@ def generate_ids(text_series, kode_list, id_list):
             if sk not in ("", "nan", "none", "N/A", "n/a"):
                 pairs.append((sk, id_val))
 
-    # Urutkan dari yang paling panjang (lebih spesifik duluan)
     pairs.sort(key=lambda x: len(str(x[0])), reverse=True)
 
-    st.write("Test kode:", pairs[0][0])
-    st.write("Test text:", str(text_series.iloc[0]).upper())
-    kode_upper = str(pairs[0][0]).upper().strip()
-    text_upper = str(text_series.iloc[0]).upper()
-    pattern = r'(?:^|(?<=[^A-Z0-9]))' + re.escape(kode_upper) + r'(?=[^A-Z0-9]|$)'
-    st.write("Pattern:", pattern)
-    st.write("Match:", re.search(pattern, text_upper))
-    st.write("Simple in match:", kode_upper in text_upper)
-    
     results = []
-    is_double_id = []  # flag untuk warna biru
+    is_double_id = []
 
     for text in text_series:
         if pd.isna(text):
@@ -160,14 +149,13 @@ def generate_ids(text_series, kode_list, id_list):
             is_double_id.append(False)
             continue
 
-        text_lower = str(text).lower()
         found_ids = []
+        text_upper = ' ' + str(text).upper() + ' '
 
         for kode, id_val in pairs:
             try:
-                kode_upper = str(kode).upper().strip()
-                text_upper = ' ' + str(text).upper() + ' '  # tambah spasi di ujung
-                if (' ' + kode_upper + ' ') in text_upper:
+                kode_upper = ' ' + str(kode).upper().strip() + ' '
+                if kode_upper in text_upper:
                     id_str = str(id_val)
                     if id_str not in found_ids:
                         found_ids.append(id_str)
