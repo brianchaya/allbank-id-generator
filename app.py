@@ -181,7 +181,18 @@ def generate_ids(text_series, kode_list, id_list):
             max_score = max(id_to_score.values())
             found_ids = [id_str for id_str, score in id_to_score.items() if score == max_score]
         else:
-            max_score = count_match_words(str(pairs[0][0]), text_upper) if found_ids else 0
+            if found_ids:
+                # cari kode yang match dengan found_ids[0]
+                max_score = 0
+                for kode, id_val in pairs:
+                    if str(id_val) == found_ids[0]:
+                        kode_upper_check = ' ' + str(kode).upper().strip() + ' '
+                        if kode_upper_check in text_upper:
+                            score = count_match_words(str(kode), text_upper)
+                            if score > max_score:
+                                max_score = score
+            else:
+                max_score = 0
 
         final_id = " ; ".join(found_ids) if found_ids else None
         results.append(final_id)
