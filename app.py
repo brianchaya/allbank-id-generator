@@ -161,6 +161,26 @@ def generate_ids(text_series, kode_list, id_list):
                         found_ids.append(id_str)
             except Exception:
                 continue
+                
+        # Kalau multiple ID, pilih yang suku kata match terbanyak
+        if len(found_ids) > 1:
+            # Hitung suku kata match per ID
+            def count_match_words(kode_str, text_upper):
+                words = kode_str.upper().strip().split()
+                return sum(1 for w in words if (' ' + w + ' ') in text_upper)
+
+            # Buat mapping id → max suku kata match
+            id_to_score = {}
+            for kode, id_val in pairs:
+                kode_upper_check = ' ' + str(kode).upper().strip() + ' '
+                if kode_upper_check in text_upper:
+                    id_str = str(id_val)
+                    score = count_match_words(str(kode), text_upper)
+                    if id_str not in id_to_score or score > id_to_score[id_str]:
+                        id_to_score[id_str] = score
+
+            max_score = max(id_to_score.values())
+            found_ids = [id_str for id_str, score in id_to_score.items() if score == max_score]
 
         final_id = " ; ".join(found_ids) if found_ids else None
         results.append(final_id)
