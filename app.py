@@ -142,6 +142,7 @@ def generate_ids(text_series, kode_list, id_list):
 
     results = []
     is_double_id = []
+    is_low_score = []
 
     for text in text_series:
         if pd.isna(text):
@@ -186,7 +187,7 @@ def generate_ids(text_series, kode_list, id_list):
         results.append(final_id)
         is_double_id.append(len(found_ids) > 1)
 
-    return results, is_double_id
+    return results, is_double_id, is_low_score
 
 # =====================================
 # MAIN PROCESS
@@ -261,7 +262,7 @@ id_list = db[id_col].tolist()
 # =====================================
 # GENERATE IDS
 # =====================================
-rk["ID"], is_double_id = generate_ids(rk[desc_col], kode_list, id_list)
+rk["ID"], is_double_id, is_low_score = generate_ids(rk[desc_col], kode_list, id_list)
 
 st.subheader("Preview Hasil")
 st.dataframe(rk)
@@ -288,8 +289,9 @@ if id_col_excel is None:
 
 red_fill  = PatternFill(start_color="FFFF0000", end_color="FFFF0000", fill_type="solid")
 blue_fill = PatternFill(start_color="FFADD8E6", end_color="FFADD8E6", fill_type="solid")
+pink_fill = PatternFill(start_color="FFFFB6C1", end_color="FFFFB6C1", fill_type="solid")
 
-for i, (val, double_flag) in enumerate(zip(rk["ID"], is_double_id)):
+for i, (val, double_flag, low_flag) in enumerate(zip(rk["ID"], is_double_id, is_low_score)): 
     excel_row = header_row_excel + 1 + i
     cell = ws.cell(excel_row, id_col_excel)
     cell.value = val
@@ -298,6 +300,8 @@ for i, (val, double_flag) in enumerate(zip(rk["ID"], is_double_id)):
         cell.fill = red_fill
     elif double_flag:
         cell.fill = blue_fill
+    elif low_flag:  
+        cell.fill = pink_fill
 
 
 # =====================================
