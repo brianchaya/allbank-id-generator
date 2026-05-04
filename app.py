@@ -140,6 +140,10 @@ def generate_ids(text_series, kode_list, id_list):
 
     pairs.sort(key=lambda x: len(str(x[0])), reverse=True)
 
+    def count_match_words(kode_str, text_upper):
+        words = kode_str.upper().strip().split()
+        return sum(1 for w in words if (' ' + w + ' ') in text_upper)
+
     results = []
     is_double_id = []
     is_low_score = []
@@ -148,6 +152,7 @@ def generate_ids(text_series, kode_list, id_list):
         if pd.isna(text):
             results.append(None)
             is_double_id.append(False)
+            is_low_score.append(False)
             continue
 
         found_ids = []
@@ -162,15 +167,8 @@ def generate_ids(text_series, kode_list, id_list):
                         found_ids.append(id_str)
             except Exception:
                 continue
-                
-        # Kalau multiple ID, pilih yang suku kata match terbanyak
-        if len(found_ids) > 1:
-            # Hitung suku kata match per ID
-            def count_match_words(kode_str, text_upper):
-                words = kode_str.upper().strip().split()
-                return sum(1 for w in words if (' ' + w + ' ') in text_upper)
 
-            # Buat mapping id → max suku kata match
+        if len(found_ids) > 1:
             id_to_score = {}
             for kode, id_val in pairs:
                 kode_upper_check = ' ' + str(kode).upper().strip() + ' '
@@ -182,13 +180,16 @@ def generate_ids(text_series, kode_list, id_list):
 
             max_score = max(id_to_score.values())
             found_ids = [id_str for id_str, score in id_to_score.items() if score == max_score]
+        else:
+            max_score = count_match_words(str(pairs[0][0]), text_upper) if found_ids else 0
 
         final_id = " ; ".join(found_ids) if found_ids else None
         results.append(final_id)
         is_double_id.append(len(found_ids) > 1)
+        is_low_score.append(max_score == 1 and final_id is not None)
 
     return results, is_double_id, is_low_score
-
+    
 # =====================================
 # MAIN PROCESS
 # =====================================
