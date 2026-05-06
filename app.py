@@ -6,20 +6,19 @@ from openpyxl.styles import PatternFill
 
 st.title("All Bank ID Generator")
 
-with st.expander("📖 Panduan Penggunaan", expanded=False):
+with st.expander("📖 Guidance", expanded=False):
     st.markdown("""
-    ### Cara Membaca Hasil
 
     **Warna Block ID di Excel:**
     - 🔴 **Merah** — ID tidak ditemukan. Kemungkinan data belum ada di database, atau kode unik di database sedikit berbeda dengan yang di rekening koran. Perlu dicek manual.
     - 🔵 **Biru** — ID ganda (multiple ID). Contoh: `23833 ; 41497 ; 21422`. Artinya ada lebih dari 1 kode unik yang match, atau ID di database memang sudah double. Perlu dicek manual untuk memastikan ID yang benar.
-    - 🩷 **Pink** — ID ditemukan, tapi hanya match 1 suku kata (contoh: `ANGELA`). Rawan salah karena nama 1 kata terlalu pasaran — bisa jadi ANGELA yang berbeda orang. Perlu dicek manual.
+    - 🟢 **Hijau** — ID ditemukan, tapi hanya match 1 suku kata (contoh: `ANGELA`). Rawan salah karena nama 1 kata terlalu common, bisa jadi ANGELA yang berbeda orang. Perlu dicek manual.
     - ✅ **Tidak berwarna** — ID ditemukan dan match lebih dari 1 suku kata. Relatif aman.
 
-    ### Yang Perlu Dicek Manual
+    **Yang Perlu Dicek Manual:**
     1. Semua block **merah** — ID belum ketemu
     2. Semua block **biru** — pastikan ID yang benar dari multiple pilihan
-    3. Semua block **pink** — validasi apakah benar orang yang sama
+    3. Semua block **hijau** — validasi apakah benar orang yang sama
     """)
     
 mode = st.radio(
